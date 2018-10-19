@@ -12,27 +12,27 @@ from multiprocessing import Lock, Manager
 from bs4 import BeautifulSoup
 
 CPU_CORES = multiprocessing.cpu_count()
-USCIS_URL = 'https://egov.uscis.gov/casestatus/mycasestatus.do'
+USCIS_URL = "https://egov.uscis.gov/casestatus/mycasestatus.do"
 
 
 def cmd_args_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-b', '--batch', required=True, type=int, help='Batch Number')
-    parser.add_argument('-c', '--case_num', required=True, type=str, help='Case Number')
-    parser.add_argument('-t', '--case_type_filter', required=False, type=str, help='Case Type Filter')
-    parser.add_argument('-v', '--verbose', action="store_true", help='Verbose mode will print out more information')
-    parser.add_argument("--dryrun", action="store_true", help='dryrun')
+    parser.add_argument("-b", "--batch", required=True, type=int, help="Batch Number")
+    parser.add_argument("-c", "--case_num", required=True, type=str, help="Case Number")
+    parser.add_argument("-t", "--case_type_filter", required=False, type=str, help="Case Type Filter")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose mode will print out more information")
+    parser.add_argument("--dryrun", action="store_true", help="dryrun")
     return parser.parse_args()
 
 
 def get_result(case_num, prefix, case_type_filter, verbose):
     info = {}
-    result = ''
+    result = ""
     buf = cStringIO.StringIO()
     case_num = prefix + str(case_num)
     c = pycurl.Curl()
     c.setopt(c.URL, USCIS_URL)
-    c.setopt(c.POSTFIELDS, 'appReceiptNum=%s' % case_num)
+    c.setopt(c.POSTFIELDS, "appReceiptNum=%s" % case_num)
     c.setopt(c.WRITEFUNCTION, buf.write)
     c.setopt(c.CAINFO, certifi.where())
     c.perform()
@@ -43,23 +43,23 @@ def get_result(case_num, prefix, case_type_filter, verbose):
     for i in my_case_txt:
         result = result + i.text
 
-    result = result.split('\n')
+    result = result.split("\n")
     buf.close()
     try:
-        details = result[2].split(',')
+        details = result[2].split(",")
         rcv_date = get_rcv_date(details)
         case_type = get_case_type(result[2])
         if case_type_filter is None or case_type == case_type_filter:
             info[case_num] = {}
-            info[case_num]['Type'] = case_type
-            info[case_num]['Status'] = result[1]
-            info[case_num]['Received'] = rcv_date
+            info[case_num]["Type"] = case_type
+            info[case_num]["Status"] = result[1]
+            info[case_num]["Received"] = rcv_date
 
         if verbose:
             print info
 
     except Exception as e:
-        print 'Invalid USCIS status'
+        print "Invalid USCIS status"
 
     return info
 
@@ -80,8 +80,8 @@ def get_batch_pair(total_num, case_s, case_e):
 def query_website(ns, batch_result, prefix, case_type_filter, lock, verbose):
     local_result = []
     if verbose:
-        print 's is %d, e is %d' % (int(batch_result['start']), int(batch_result['end']))
-    for case_n in range(int(batch_result['start']), int(batch_result['end'])):
+        print "s is %d, e is %d" % (int(batch_result["start"]), int(batch_result["end"]))
+    for case_n in range(int(batch_result["start"]), int(batch_result["end"])):
         result = get_result(case_n, prefix, case_type_filter, verbose)
         if bool(result):
             local_result.append(result)
@@ -103,16 +103,16 @@ def get_case_type(line):
         return cr_case.group(0)
     if ir_case:
         return ir_case.group(0)
-    return 'Unrecognized Case'
+    return "Unrecognized Case"
 
 
 def get_rcv_date(details):
     year = str(details[1][1:])
 
     if year.isdigit():
-        date_list = details[0].split(' ')[-2:]
+        date_list = details[0].split(" ")[-2:]
         date_list.append(year)
-        rcv_date = ' '.join(date_list)
+        rcv_date = " ".join(date_list)
     else:
         rcv_date = None
 
@@ -125,7 +125,7 @@ def main():
     case_id = int(args.case_num[3:])
     prefix = args.case_num[:3]
     case_type_filter = None
-    if hasattr(args, 'case_type_filter'):
+    if hasattr(args, "case_type_filter"):
         case_type_filter = args.case_type_filter
     lock = Lock()
     jobs = []
@@ -158,9 +158,9 @@ def main():
 
     json_type = json.dumps(final_result, indent=4)
     now = datetime.datetime.now()
-    with open('data-%s.yml' % now.strftime("%Y-%m-%d"), 'w') as outfile:
+    with open("data-%s.yml" % now.strftime("%Y-%m-%d"), "w") as outfile:
         yaml.dump(yaml.load(json_type), outfile, allow_unicode=True)
-    print yaml.dump(yaml.load(json_type), allow_unicode=True)
+    print yaml.dump(yaml.load(json_type), allow_unicode=True, width=256)
 
 
 if __name__ == "__main__":
