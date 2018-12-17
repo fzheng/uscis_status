@@ -51,6 +51,7 @@ def get_result(case_num, prefix, case_type_filter, verbose):
         case_type = get_case_type(result[2])
         if case_type_filter is None or case_type == case_type_filter:
             info[case_num] = {}
+            info[case_num]["Queried"] = datetime.datetime.now().isoformat()
             info[case_num]["Type"] = case_type
             info[case_num]["Status"] = result[1]
             info[case_num]["Received"] = rcv_date
